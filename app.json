@@ -1,0 +1,34 @@
+{
+  "expo": {
+    "scheme": "fcksh",
+    "userInterfaceStyle": "automatic",
+    "orientation": "default",
+    "web": {
+      "output": "static"
+    },
+    "plugins": [
+      [
+        "expo-router",
+        {
+          "origin": "https://n"
+        }
+      ],
+      "expo-health-connect",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 34,
+            "targetSdkVersion": 34,
+            "minSdkVersion": 26
+          }
+        }
+      ]
+    ],
+    "name": "Samsung Health Companion",
+    "slug": "samsung-health-companion",
+    "android": {
+      "package": "com.spacebanane.samsunghealthcompanion"
+    }
+  }
+}
