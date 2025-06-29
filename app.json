@@ -18,9 +18,9 @@
         "expo-build-properties",
         {
           "android": {
-            "compileSdkVersion": 34,
-            "targetSdkVersion": 34,
-            "minSdkVersion": 26
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "minSdkVersion": 34
           }
         }
       ]
@@ -29,6 +29,14 @@
     "slug": "samsung-health-companion",
     "android": {
       "package": "com.spacebanane.samsunghealthcompanion"
+    },
+    "extra": {
+      "router": {
+        "origin": "https://n"
+      },
+      "eas": {
+        "projectId": "2175b464-95e3-4299-96c9-e6d1cfc46623"
+      }
     }
   }
 }
