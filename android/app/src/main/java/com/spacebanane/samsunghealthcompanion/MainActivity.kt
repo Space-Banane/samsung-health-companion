@@ -1,4 +1,4 @@
-package com.spacebanane.fucksamsunghealth
+package com.spacebanane.samsunghealthcompanion
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build

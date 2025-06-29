@@ -31,7 +31,7 @@ extensions.configure(com.facebook.react.ReactSettingsExtension) { ex ->
 }
 expoAutolinking.useExpoModules()
 
-rootProject.name = 'Fuck Samsung Health'
+rootProject.name = 'Samsung Health Companion'
 
 expoAutolinking.useExpoVersionCatalog()
 

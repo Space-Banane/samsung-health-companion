@@ -1,4 +1,4 @@
-package com.spacebanane.fucksamsunghealth
+package com.spacebanane.samsunghealthcompanion
 
 import android.app.Application
 import android.content.res.Configuration

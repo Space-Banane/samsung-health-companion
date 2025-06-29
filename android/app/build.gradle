@@ -87,9 +87,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'com.spacebanane.fucksamsunghealth'
+    namespace 'com.spacebanane.samsunghealthcompanion'
     defaultConfig {
-        applicationId 'com.spacebanane.fucksamsunghealth'
+        applicationId 'com.spacebanane.samsunghealthcompanion'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

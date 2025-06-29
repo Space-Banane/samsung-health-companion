@@ -1,195 +1,179 @@
-import React, { useState, useEffect } from "react";
-import { Text, View, ScrollView, TouchableOpacity, Alert } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import React, {
+  useState,
+  useImperativeHandle,
+  forwardRef,
+  useEffect,
+  createContext,
+  useContext,
+} from "react";
 import {
-  initialize,
-  requestPermission,
-  readRecords,
-  insertRecords
-} from 'react-native-health-connect';
+  Text,
+  View,
+  Pressable,
+  BackHandler,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { AntDesign, Feather, Ionicons } from "@expo/vector-icons";
+import IndexView from "./views/Index";
 
-interface CalorieRecord {
-  startTime: string;
-  endTime: string;
-  energy: {
-    inCalories: number;
-    inJoules: number;
-    inKilojoules: number;
-    inKilocalories: number;
-  };
-  metadata: {
-    id: string;
-    lastModifiedTime: string;
-    dataOrigin: string;
-  };
+export type TabName =
+  | "Home";
+
+// User Context
+interface UserContextType {
+  activeTab: TabName;
+  setActiveTab: (tab: TabName) => void;
 }
 
-export default function Page() {
-  const [calorieData, setCalorieData] = useState<CalorieRecord[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isInitialized, setIsInitialized] = useState(false);
+const UserContext = createContext<UserContextType | undefined>(undefined);
 
-  const readSampleData = async () => {
-    try {
-      setIsLoading(true);
-      
-      // initialize the client
-      const initialized = await initialize();
-      setIsInitialized(initialized);
-      
-      if (!initialized) {
-        Alert.alert('Error', 'Failed to initialize Health Connect');
-        return;
+export const useUser = () => {
+  const context = useContext(UserContext);
+  if (context === undefined) {
+    throw new Error("useUser must be used within a UserProvider");
+  }
+  return context;
+};
+
+const UserProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const [activeTab, setActiveTab] = useState<TabName>("Home");
+
+  return (
+    <UserContext.Provider
+      value={{
+        activeTab,
+        setActiveTab,
+      }}
+    >
+      {children}
+    </UserContext.Provider>
+  );
+};
+
+export interface PageRef {
+  switchTab: (tabName: TabName) => void;
+}
+
+const PageComponent = forwardRef<PageRef>((props, ref) => {
+  const [processedToken, setProcessedToken] = useState<string | null>(null);
+  const { activeTab, setActiveTab } = useUser();
+
+  const allTabs = {
+    Home: {
+      name: "Home",
+      icon: "home",
+      iconSet: "AntDesign",
+      component: IndexView,
+    },
+  };
+
+  // Only show Home and Settings in the tab bar
+  const visibleTabs = [allTabs.Home];
+
+  const switchTab = (tabName: TabName) => {
+    setActiveTab(tabName);
+  };
+
+  useEffect(() => {
+    const backAction = () => {
+      if (activeTab !== "Home") {
+        switchTab("Home");
+        return true; // Prevent default back action
       }
+      return false; // Allow default back action
+    };
 
-      // request permissions
-      const grantedPermissions = await requestPermission([
-        { accessType: 'read', recordType: 'ActiveCaloriesBurned' },
-      ]);
+    const backHandler = BackHandler.addEventListener(
+      "hardwareBackPress",
+      backAction
+    );
 
-      // read records from last 7 days
-      const endTime = new Date().toISOString();
-      const startTime = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    return () => backHandler.remove();
+  }, [activeTab, switchTab]);
 
-      const result = await readRecords('ActiveCaloriesBurned', {
-        timeRangeFilter: {
-          operator: 'between',
-          startTime,
-          endTime,
-        },
-      });
+  useImperativeHandle(ref, () => ({
+    switchTab,
+  }));
 
-      setCalorieData(
-        (result.records || []).map((record: any) => ({
-          ...record,
-          metadata: {
-            id: record.metadata.id ?? "",
-            lastModifiedTime: record.metadata.lastModifiedTime,
-            dataOrigin: record.metadata.dataOrigin,
-          },
-        }))
-      );
-    } catch (error) {
-      Alert.alert('Error', `Failed to read health data: ${error}`);
-    } finally {
-      setIsLoading(false);
+
+  const ActiveComponent = allTabs[activeTab].component;
+
+  return (
+    <View className="flex flex-1 mt-6 mr-1 ml-1">
+      <ActiveComponent switchTab={switchTab} />
+      <TabBar
+        tabs={visibleTabs}
+        activeTab={activeTab}
+        onTabPress={(name) => setActiveTab(name as TabName)}
+      />
+    </View>
+  );
+});
+
+const Page = forwardRef<PageRef>((props, ref) => {
+  return (
+    <UserProvider>
+      <PageComponent ref={ref} />
+    </UserProvider>
+  );
+});
+
+function TabBar({
+  tabs,
+  activeTab,
+  onTabPress,
+}: {
+  tabs: Array<{ name: string; icon: string; iconSet: string; component: any }>;
+  activeTab: TabName;
+  onTabPress: (name: string) => void;
+}) {
+  const { bottom } = useSafeAreaInsets();
+
+  const renderIcon = (iconSet: string, iconName: string, isActive: boolean) => {
+    const color = isActive ? "#60a5fa" : "#9ca3af";
+    const size = 24;
+
+    switch (iconSet) {
+      case "AntDesign":
+        return <AntDesign name={iconName as any} size={size} color={color} />;
+      case "Feather":
+        return <Feather name={iconName as any} size={size} color={color} />;
+      case "Ionicons":
+        return <Ionicons name={iconName as any} size={size} color={color} />;
+      default:
+        return null;
     }
   };
 
   return (
-    <View className="flex flex-1 bg-gray-900">
-      <Header />
-      <Content 
-        calorieData={calorieData}
-        isLoading={isLoading}
-        isInitialized={isInitialized}
-        onRefresh={readSampleData}
-      />
-    </View>
-  );
-}
-
-function Content({ 
-  calorieData, 
-  isLoading, 
-  isInitialized, 
-  onRefresh 
-}: {
-  calorieData: CalorieRecord[];
-  isLoading: boolean;
-  isInitialized: boolean;
-  onRefresh: () => void;
-}) {
-  return (
-    <ScrollView className="flex-1 px-4">
-      <View className="py-8">
-        <Text className="text-3xl font-bold text-white text-center mb-2">
-          Samsung Health Data
-        </Text>
-        <Text className="text-gray-400 text-center mb-8">
-          Active Calories Burned (Last 7 Days)
-        </Text>
-
-        <TouchableOpacity
-          onPress={onRefresh}
-          disabled={isLoading}
-          className="bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-lg mb-6"
+    <View
+      className="bg-background-tabbar shadow-lg rounded-tr-2xl rounded-tl-2xl"
+      style={{ paddingBottom: bottom }}
+    >
+      <View className="flex-row">
+      {tabs.map((tab) => (
+        <Pressable
+        key={tab.name}
+        className="flex-1 py-3 px-2 items-center justify-center"
+        onPress={() => onTabPress(tab.name)}
         >
-          <Text className="text-white font-medium text-center">
-            {isLoading ? 'Loading...' : 'Refresh Data'}
+        <View className="items-center gap-1">
+          {renderIcon(tab.iconSet, tab.icon, activeTab === tab.name)}
+          <Text
+          className={`text-xs font-medium ${
+            activeTab === tab.name ? "text-blue-400" : "text-gray-400"
+          }`}
+          >
+          {tab.name}
           </Text>
-        </TouchableOpacity>
-
-        {!isInitialized && (
-          <View className="bg-red-900 border border-red-700 rounded-lg p-4 mb-4">
-            <Text className="text-red-200">
-              Health Connect not initialized. Please check permissions.
-            </Text>
-          </View>
-        )}
-
-        {calorieData.length === 0 && !isLoading && (
-          <View className="bg-gray-800 rounded-lg p-6 text-center">
-            <Text className="text-gray-300">
-              No calorie data found. Try refreshing or check your Samsung Health app.
-            </Text>
-          </View>
-        )}
-
-        {calorieData.map((record, index) => (
-          <View key={record.metadata.id} className="bg-gray-800 rounded-lg p-4 mb-4">
-            <View className="flex-row justify-between items-center mb-2">
-              <Text className="text-white font-semibold">Record #{index + 1}</Text>
-              <Text className="text-gray-400 text-sm">
-                {new Date(record.startTime).toLocaleDateString()}
-              </Text>
-            </View>
-            
-            <View className="space-y-2">
-              <View className="flex-row justify-between">
-                <Text className="text-gray-300">Calories:</Text>
-                <Text className="text-white font-medium">
-                  {record.energy.inKilocalories.toLocaleString()} kcal
-                </Text>
-              </View>
-              
-              <View className="flex-row justify-between">
-                <Text className="text-gray-300">Kilojoules:</Text>
-                <Text className="text-white">
-                  {record.energy.inKilojoules.toFixed(2)} kJ
-                </Text>
-              </View>
-              
-              <View className="flex-row justify-between">
-                <Text className="text-gray-300">Time Range:</Text>
-                <Text className="text-white text-sm">
-                  {new Date(record.startTime).toLocaleTimeString()} - {new Date(record.endTime).toLocaleTimeString()}
-                </Text>
-              </View>
-              
-              <View className="flex-row justify-between">
-                <Text className="text-gray-300">Source:</Text>
-                <Text className="text-white text-sm">
-                  {record.metadata.dataOrigin}
-                </Text>
-              </View>
-            </View>
-          </View>
-        ))}
-      </View>
-    </ScrollView>
-  );
-}
-
-function Header() {
-  const { top } = useSafeAreaInsets();
-  return (
-    <View style={{ paddingTop: top }} className="bg-gray-900">
-      <View className="px-4 h-14 flex items-center flex-row justify-center">
-        <Text className="font-bold text-white text-lg">
-          Health Data Viewer
-        </Text>
+        </View>
+        </Pressable>
+      ))}
       </View>
     </View>
   );
 }
+
+export default Page;
